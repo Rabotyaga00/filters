@@ -1,0 +1,59 @@
+import asyncio
+import logging
+import sys
+
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.enums import ParseMode
+from aiogram.filters import BaseFilter, CommandStart
+from aiogram.types import Message
+
+TOKEN = '7166309582:AAH2fJ9K-JPmHTHc8kXTOkbtoifDPRm0M1o'
+
+bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
+
+admin_ids = [7166309582]
+
+class NumbersInMessage(BaseFilter):
+    async def __call__(self, message: Message) -> bool | dict[str, list[int]]:
+        numbers = []
+        for word in message.text.split():
+            normalized_word = word.replace('.', '').replace(',', '').strip()
+            if normalized_word.isdigit():
+                numbers.append(int(normalized_word))
+        if numbers:
+            return {'numbers': numbers}
+        return False
+
+@dp.message(F.text.lower().startswith('найди числа'), NumbersInMessage())
+async def process_if_numbers(message: Message, numbers: list[int]):
+    await message.answer(text=f'Нашел: {", ".join(str(num) for num in numbers)}')
+
+@dp.message(F.text.lower().startswith('найди числа'))
+async def process_if_not_numbers(message: Message):
+    await message.answer(text='Не нашел что-то :(')
+
+class IsSingleDigit(BaseFilter):
+    async def __call__(self, message: Message) -> bool:
+        return message.text.replace(' ', '').isdigit() and len(message.text.replace(' ', '')) == 1
+
+@dp.message(IsSingleDigit())
+async def process_if_is_single_digit(message: Message):
+    digit = message.text.replace(' ', '')
+    await message.answer(text=f'Вы отправили цифру: {digit}')
+
+class ValidPhoneNumber(BaseFilter):
+    async def __call__(self, message: Message) -> bool:
+        phone_number = message.text
+        return phone_number.startswith('+') and len(phone_number) == 11  # 11 символов, включая "+"
+
+@dp.message(ValidPhoneNumber())
+async def process_valid_phone_number(message: Message):
+    await message.answer(text='Вы ввели свой номер телефона.')
+
+async def main() -> None:
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    asyncio.run(main())
