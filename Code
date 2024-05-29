@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.enums import ParseMode
 from aiogram.filters import BaseFilter, CommandStart
 from aiogram.types import Message
+from  typing import Union
 
 TOKEN = '7166309582:AAH2fJ9K-JPmHTHc8kXTOkbtoifDPRm0M1o'
 
@@ -15,7 +16,7 @@ dp = Dispatcher()
 admin_ids = [7166309582]
 
 class NumbersInMessage(BaseFilter):
-    async def __call__(self, message: Message) -> bool | dict[str, list[int]]:
+    async def __call__(self, message: Message) -> Union[ bool,dict[str, list[int]]]:
         numbers = []
         for word in message.text.split():
             normalized_word = word.replace('.', '').replace(',', '').strip()
@@ -33,14 +34,17 @@ async def process_if_numbers(message: Message, numbers: list[int]):
 async def process_if_not_numbers(message: Message):
     await message.answer(text='Не нашел что-то :(')
 
-class IsSingleDigit(BaseFilter):
+class IsDigit(BaseFilter):
     async def __call__(self, message: Message) -> bool:
-        return message.text.replace(' ', '').isdigit() and len(message.text.replace(' ', '')) == 1
+        count = sum(1 for int in message.text.lower() if int =='1' or '2'or '3' or'4' or'5' or'6'or '7' or'8' or'9'or '0')
+        print(count,type(count))
+        if count>0:
+            return {'count':count}
+        return False
 
-@dp.message(IsSingleDigit())
-async def process_if_is_single_digit(message: Message):
-    digit = message.text.replace(' ', '')
-    await message.answer(text=f'Вы отправили цифру: {digit}')
+@dp.message(IsDigit())
+async def process_if_is_digit(message: types.Message,count:int):
+    await message.answer(text=f'Количество чисел в сообщение : {count}')
 
 class ValidPhoneNumber(BaseFilter):
     async def __call__(self, message: Message) -> bool:
